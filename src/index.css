@@ -1,2 +1,54 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+.pdf-content {
+  color: #000000;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+}
+.pdf-content h1, .pdf-content h2, .pdf-content h3, .pdf-content h4 {
+  color: #000000;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.pdf-content h1 { font-size: 2.25em; }
+.pdf-content h2 { font-size: 1.5em; }
+.pdf-content h3 { font-size: 1.25em; }
+.pdf-content p { margin-bottom: 1em; margin-top: 0; }
+.pdf-content strong { font-weight: 700; color: #000000; }
+.pdf-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; margin-top: 0; }
+.pdf-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; margin-top: 0; }
+.pdf-content li { margin-bottom: 0.25em; }
+.pdf-content blockquote { 
+  border-left: 4px solid #E5E7EB; 
+  padding-left: 1em; 
+  color: #4B5563; 
+  margin-top: 1em; 
+  margin-bottom: 1em; 
+  font-style: italic; 
+}
+.pdf-content code { 
+  background-color: #F3F4F6; 
+  padding: 0.2em 0.4em; 
+  border-radius: 4px; 
+  font-family: ui-monospace, monospace; 
+  color: #111827; 
+  font-size: 0.9em; 
+}
+.pdf-content pre { 
+  background-color: #1F2937; 
+  color: #F9FAFB; 
+  padding: 1em; 
+  border-radius: 8px; 
+  overflow-x: auto; 
+  margin-top: 1em; 
+  margin-bottom: 1em; 
+}
+.pdf-content pre code { 
+  background-color: transparent; 
+  color: inherit; 
+  padding: 0; 
+  font-size: 0.9em; 
+}

@@ -38,7 +38,7 @@ ${text}
   return response.text || "No response generated.";
 }
 
-export async function translateText(text: string, targetLanguage: 'Bengali' | 'English'): Promise<string> {
+export async function translateText(text: string, targetLanguage: string): Promise<string> {
   const prompt = `You are a professional translator. Translate the following text into ${targetLanguage}. Ensure the translation is natural, accurate, and culturally appropriate.
 
 Text to translate:
@@ -54,7 +54,7 @@ ${text}
   return response.text || "No response generated.";
 }
 
-export async function generateArticle(topic: string, language: 'Bengali' | 'English'): Promise<string> {
+export async function generateArticle(topic: string, language: string): Promise<string> {
   const prompt = `You are an expert copywriter and article generator. Write a comprehensive, engaging, and well-structured article about the following topic.
 Write the article entirely in ${language}. Use appropriate formatting such as headings, lists, and paragraphs.
 
@@ -88,7 +88,41 @@ ${topic}
   return response.text || "No response generated.";
 }
 
-export async function summarizePdf(base64Data: string, language: 'Bengali' | 'English'): Promise<string> {
+export async function summarizeBook(bookQuery: string, language: string): Promise<string> {
+  const prompt = `You are an expert literary critic and book summarizer. Provide a comprehensive summary and analysis of the book or topic "${bookQuery}".
+Write the entire response in ${language}. 
+Please include:
+- A brief overview/plot summary
+- Key themes and concepts
+- Main takeaways or lessons
+- Format using proper Markdown (headings, bullet points, bold text).`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3.1-pro-preview",
+    contents: prompt,
+  });
+
+  return response.text || "No response generated.";
+}
+
+export async function generateFullBook(bookQuery: string, language: string): Promise<string> {
+  const prompt = `You are an expert author and literary creator. Produce a comprehensive and detailed "Full Book" or story version of "${bookQuery}".
+Write the entire response in ${language}. 
+Please include:
+- A captivating Title and Author/Introduction
+- Several cohesive, well-written chapters filled with details and narrative
+- A clear conclusion or epilogue.
+Make it as informative and extensive as possible to simulate a full book. Format using proper Markdown (headings, bullet points, bold text).`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3.1-pro-preview",
+    contents: prompt,
+  });
+
+  return response.text || "No response generated.";
+}
+
+export async function summarizePdf(base64Data: string, language: string): Promise<string> {
   const prompt = `You are an expert document summarizer. Please review the attached PDF document and provide a comprehensive, well-structured summary. 
 Follow these guidelines:
 - Highlight the key points, main arguments, and conclusions.
