@@ -485,7 +485,10 @@ export default function App() {
                           {copied ? <><Check size={14} className="text-[#10B981]" /> Copied</> : <><Copy size={14} /> Copy</>}
                         </button>
                         <button
-                          onClick={() => handleDownloadPDF(generatorPdfRef, 'MavxonAI-Content.pdf')}
+                          onClick={() => {
+                            const safeName = topicInput?.trim() ? topicInput.trim().replace(/[^a-zA-Z0-9\s-]/g, '').substring(0, 50).trim() : 'Content';
+                            handleDownloadPDF(generatorPdfRef, `${safeName || 'MavxonAI-Content'}.pdf`);
+                          }}
                           className="text-[#8B5CF6] hover:text-[#A78BFA] transition-colors flex items-center gap-2 text-[13px] font-medium hidden sm:flex"
                         >
                           <Download size={14} /> Download PDF
@@ -569,7 +572,10 @@ export default function App() {
                         <button onClick={() => handleCopy(generatorResult)} className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors flex items-center gap-2 text-[13px]">
                           {copied ? <><Check size={14} className="text-[#10B981]" /> Copied</> : <><Copy size={14} /> Copy</>}
                         </button>
-                        <button onClick={() => handleDownloadPDF(generatorPdfRef, 'MavxonAI-Book.pdf')} className="text-[#8B5CF6] hover:text-[#A78BFA] transition-colors flex items-center gap-2 text-[13px] font-medium hidden sm:flex">
+                        <button onClick={() => {
+                          const safeName = topicInput?.trim() ? topicInput.trim().replace(/[^a-zA-Z0-9\s-]/g, '').substring(0, 50).trim() : 'Book';
+                          handleDownloadPDF(generatorPdfRef, `${safeName || 'MavxonAI-Book'}.pdf`);
+                        }} className="text-[#8B5CF6] hover:text-[#A78BFA] transition-colors flex items-center gap-2 text-[13px] font-medium hidden sm:flex">
                           <Download size={14} /> Download PDF
                         </button>
                       </div>
@@ -665,7 +671,10 @@ export default function App() {
                           {copied ? <><Check size={14} className="text-[#10B981]" /> Copied</> : <><Copy size={14} /> Copy</>}
                         </button>
                         <button
-                          onClick={() => handleDownloadPDF(pdfSummaryRef, 'MavxonAI-Summary.pdf')}
+                          onClick={() => {
+                            const originalName = pdfFile ? pdfFile.name.replace(/\.[^/.]+$/, "") : "Summary";
+                            handleDownloadPDF(pdfSummaryRef, `${originalName}-Summary.pdf`);
+                          }}
                           className="text-[#8B5CF6] hover:text-[#A78BFA] transition-colors flex items-center gap-2 text-[13px] font-medium"
                         >
                           <Download size={14} /> Download PDF

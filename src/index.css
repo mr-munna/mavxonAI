@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@layer base {
+  button, 
+  [role="button"] {
+    cursor: pointer;
+  }
+  button:disabled, 
+  [role="button"][aria-disabled="true"],
+  [disabled] {
+    cursor: not-allowed;
+  }
+  select {
+    cursor: pointer;
+  }
+}
+
 .pdf-content {
   color: #000000;
   font-family: ui-sans-serif, system-ui, sans-serif;
