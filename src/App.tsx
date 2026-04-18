@@ -1,8 +1,16 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bot, PenTool, Sparkles, Languages, Check, ArrowRight, LayoutTemplate, MessageSquareText, Lightbulb, Loader2, Copy, FileText, Upload, X, Download, BookOpen, BookText } from 'lucide-react';
+import { Bot, PenTool, Sparkles, Languages, Check, ArrowRight, LayoutTemplate, MessageSquareText, Lightbulb, Loader2, Copy, FileText, Upload, X, Download, BookOpen, BookText, History, Trash2, ChevronRight, DownloadCloud } from 'lucide-react';
 import Markdown from 'react-markdown';
 import html2canvas from 'html2canvas-pro';
+
+export interface GeneratedHistoryItem {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  timestamp: number;
+}
 import { jsPDF } from 'jspdf';
 import { checkGrammar, rewriteText, translateText, generateArticle, brainstormIdeas, summarizePdf, summarizeBook, generateFullBook } from './services/geminiService';
 
@@ -31,6 +39,46 @@ export default function App() {
   const [targetLanguage, setTargetLanguage] = useState('English');
   const pdfSummaryRef = useRef<HTMLDivElement>(null);
   const generatorPdfRef = useRef<HTMLDivElement>(null);
+  const historyPdfRef = useRef<HTMLDivElement>(null);
+
+  const [history, setHistory] = useState<GeneratedHistoryItem[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState<GeneratedHistoryItem | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('mavxonHistory');
+      if (stored) {
+        setHistory(JSON.parse(stored));
+      }
+    } catch(e) {
+      console.error('Failed to load history', e);
+    }
+  }, []);
+
+  const saveToHistory = (item: Pick<GeneratedHistoryItem, 'type' | 'title' | 'content'>) => {
+    if(!item.content.trim()) return;
+    const newItem: GeneratedHistoryItem = {
+      id: Date.now().toString(),
+      ...item,
+      timestamp: Date.now()
+    };
+    setHistory(prev => {
+      const newHistory = [newItem, ...prev].slice(0, 50); // Keep last 50 items
+      try {
+        localStorage.setItem('mavxonHistory', JSON.stringify(newHistory));
+      } catch(e) {
+        console.error('Failed to save object to history (maybe quota exceeded)', e);
+      }
+      return newHistory;
+    });
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem('mavxonHistory');
+    setSelectedHistory(null);
+  };
 
   const handleDownloadPDF = async (elementRef: React.RefObject<HTMLDivElement | null>, filename: string) => {
     if (!elementRef.current) return;
@@ -184,6 +232,11 @@ export default function App() {
           break;
       }
       setEditorResult(res);
+      saveToHistory({ 
+        type: action === 'grammar' ? 'Grammar Fix' : action === 'rewrite' ? 'Rewrite' : 'Translation', 
+        title: editorInput.substring(0, 40) + '...', 
+        content: res 
+      });
     } catch (e: any) {
       setEditorResult(`**Error:** ${getErrorMessage(e)}`);
     } finally {
@@ -213,6 +266,11 @@ export default function App() {
           break;
       }
       setGeneratorResult(res);
+      saveToHistory({ 
+        type: action === 'article' ? 'Article' : action === 'ideas' ? 'Ideas' : action === 'bookSummary' ? 'Book Summary' : 'Full Book', 
+        title: topicInput.substring(0, 40), 
+        content: res 
+      });
     } catch (e: any) {
       setGeneratorResult(`**Error:** ${getErrorMessage(e)}`);
     } finally {
@@ -250,6 +308,11 @@ export default function App() {
 
       const res = await summarizePdf(base64String, targetLanguage);
       setPdfResult(res);
+      saveToHistory({
+        type: 'PDF Summary',
+        title: pdfFile.name,
+        content: res
+      });
     } catch (e: any) {
       setPdfResult(`**Error processing PDF:** ${getErrorMessage(e)}`);
     } finally {
@@ -274,17 +337,27 @@ export default function App() {
               <span className="text-[#F59E0B]">Mav</span><span className="text-[#3B82F6]">xon</span> <span className="text-[#F8FAFC]">AI</span>
             </h1>
           </div>
-          <div className="bg-white/[0.02] border border-[#1E293B] rounded-xl px-3 py-1.5 flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-3 shadow-sm">
-            <span className="text-[11px] md:text-[12px] text-[#94A3B8] font-medium hidden sm:inline">Output Language:</span>
-            <select 
-              value={targetLanguage} 
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              className="bg-transparent text-[13px] md:text-[14px] text-[#F8FAFC] font-semibold focus:outline-none border-none py-1 cursor-pointer appearance-none outline-none"
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+            <button 
+              onClick={() => setIsHistoryOpen(true)}
+              className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 text-[#94A3B8] hover:text-[#F8FAFC] bg-white/[0.02] hover:bg-white/[0.05] border border-[#1E293B] rounded-xl transition-all relative"
+              title="View History"
             >
-              {LANGUAGES.map(lang => (
-                <option key={lang} value={lang} className="bg-[#0A0C11] text-[#F8FAFC]">{lang}</option>
-              ))}
-            </select>
+              <History size={18} />
+              {history.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#10B981] rounded-full border-2 border-[#0A0C11]"></span>}
+            </button>
+            <div className="bg-white/[0.02] border border-[#1E293B] rounded-xl px-2 py-1.5 md:px-3 flex flex-col md:flex-row items-center gap-1 md:gap-3 shadow-sm min-w-0">
+              <span className="text-[11px] md:text-[12px] text-[#94A3B8] font-medium hidden sm:inline whitespace-nowrap">Output Language:</span>
+              <select 
+                value={targetLanguage} 
+                onChange={(e) => setTargetLanguage(e.target.value)}
+                className="bg-transparent text-[13px] md:text-[14px] text-[#F8FAFC] font-semibold focus:outline-none border-none py-1 cursor-pointer appearance-none outline-none w-full max-w-[100px] sm:max-w-none text-center sm:text-left"
+              >
+                {LANGUAGES.map(lang => (
+                  <option key={lang} value={lang} className="bg-[#0A0C11] text-[#F8FAFC]">{lang}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </header>
@@ -709,53 +782,53 @@ export default function App() {
         </AnimatePresence>
 
         {/* Mobile Bottom Navigation */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0A0C11]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-start sm:justify-around px-2 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] overflow-x-auto gap-2">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0A0C11]/95 backdrop-blur-md border-t border-[#1E293B] grid grid-cols-4 px-1 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
           <button
             onClick={() => setActiveTab('editor')}
-            className={`flex flex-col items-center min-w-[70px] gap-1.5 p-2 rounded-xl flex-shrink-0 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-1 transition-all ${
               activeTab === 'editor' ? 'text-[#4F46E5]' : 'text-[#94A3B8] hover:text-[#F8FAFC]'
             }`}
           >
             <div className={`p-1.5 rounded-lg transition-all ${activeTab === 'editor' ? 'bg-[#4F46E5]/10' : ''}`}>
                <PenTool size={20} className={activeTab === 'editor' ? 'fill-[#4F46E5]/20' : ''} />
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Editor</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-center">Editor</span>
           </button>
           
           <button
             onClick={() => setActiveTab('generator')}
-            className={`flex flex-col items-center min-w-[70px] gap-1.5 p-2 rounded-xl flex-shrink-0 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-1 transition-all ${
               activeTab === 'generator' ? 'text-[#F59E0B]' : 'text-[#94A3B8] hover:text-[#F8FAFC]'
             }`}
           >
             <div className={`p-1.5 rounded-lg transition-all ${activeTab === 'generator' ? 'bg-[#F59E0B]/10' : ''}`}>
               <Sparkles size={20} className={activeTab === 'generator' ? 'fill-[#F59E0B]/20' : ''} />
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Generator</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-center">Generator</span>
           </button>
 
           <button
             onClick={() => setActiveTab('books')}
-            className={`flex flex-col items-center min-w-[70px] gap-1.5 p-2 rounded-xl flex-shrink-0 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-1 transition-all ${
               activeTab === 'books' ? 'text-[#BE185D]' : 'text-[#94A3B8] hover:text-[#F8FAFC]'
             }`}
           >
             <div className={`p-1.5 rounded-lg transition-all ${activeTab === 'books' ? 'bg-[#BE185D]/10' : ''}`}>
               <BookOpen size={20} className={activeTab === 'books' ? 'fill-[#BE185D]/20' : ''} />
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider">Books</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-center">Books</span>
           </button>
 
           <button
             onClick={() => setActiveTab('pdf')}
-            className={`flex flex-col items-center min-w-[70px] gap-1.5 p-2 rounded-xl flex-shrink-0 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-1 transition-all ${
               activeTab === 'pdf' ? 'text-[#8B5CF6]' : 'text-[#94A3B8] hover:text-[#F8FAFC]'
             }`}
           >
              <div className={`p-1.5 rounded-lg transition-all ${activeTab === 'pdf' ? 'bg-[#8B5CF6]/10' : ''}`}>
               <FileText size={20} className={activeTab === 'pdf' ? 'fill-[#8B5CF6]/20' : ''} />
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider">PDF Tools</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-center">PDF Tools</span>
           </button>
         </div>
 
@@ -780,7 +853,136 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Hidden Printable PDF Container (History) */}
+        {selectedHistory && (
+          <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', zIndex: -9999 }}>
+            <div ref={historyPdfRef} style={{ width: '800px', backgroundColor: '#ffffff', padding: '3rem', minHeight: '1100px' }}>
+              <div className="pdf-content">
+                <Markdown>{selectedHistory.content}</Markdown>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* History Sidebar/Modal */}
+      <AnimatePresence>
+        {isHistoryOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsHistoryOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 right-0 h-[100dvh] w-full sm:w-[450px] md:w-[600px] bg-[#0A0C11] border-l border-[#1E293B] z-[101] shadow-2xl flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-[#1E293B] bg-[#0A0C11]/95 sticky top-0 z-10">
+                <div className="flex items-center gap-3">
+                  {selectedHistory ? (
+                    <button onClick={() => setSelectedHistory(null)} className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors p-1">
+                       <ArrowRight size={20} className="rotate-180" />
+                    </button>
+                  ) : (
+                    <History className="text-[#10B981]" size={24} />
+                  )}
+                  <h2 className="text-[18px] font-bold text-[#F8FAFC]">
+                    {selectedHistory ? 'Content Details' : 'Generation History'}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!selectedHistory && history.length > 0 && (
+                     <button onClick={clearHistory} className="text-[#EF4444] hover:text-[#FCA5A5] hover:bg-[#EF4444]/10 p-2 rounded-lg transition-colors flex items-center gap-2 text-[13px] font-medium mr-2">
+                       <Trash2 size={16} /> <span className="hidden sm:inline">Clear</span>
+                     </button>
+                  )}
+                  {selectedHistory && (
+                    <>
+                      <button onClick={() => {
+                        const safeTitle = selectedHistory.title ? selectedHistory.title.replace(/[^a-zA-Z0-9\s-]/g, '').substring(0, 40).trim() : 'History';
+                        handleDownloadPDF(historyPdfRef, `${safeTitle}-MavxonAI.pdf`);
+                      }} className="text-[#8B5CF6] hover:text-[#A78BFA] hover:bg-[#8B5CF6]/10 p-2 rounded-lg transition-colors flex items-center gap-2 text-[13px] font-medium">
+                        <DownloadCloud size={16} /> <span className="hidden sm:inline">PDF</span>
+                      </button>
+                      <button onClick={() => handleCopy(selectedHistory.content)} className="text-[#10B981] hover:text-[#34D399] hover:bg-[#10B981]/10 p-2 rounded-lg transition-colors flex items-center gap-2 text-[13px] font-medium mr-2">
+                        {copied ? <Check size={16} /> : <Copy size={16} />} <span className="hidden sm:inline">Copy</span>
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => { setIsHistoryOpen(false); setSelectedHistory(null); }} className="text-[#94A3B8] hover:text-[#F8FAFC] bg-white/[0.05] p-2 rounded-xl transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
+                {selectedHistory ? (
+                  <div className="bg-gradient-to-br from-[#0f172a] to-[#1e1b4b] border border-[#1E293B] rounded-xl p-5">
+                     <div className="flex items-center gap-2 mb-4 pb-4 border-b border-[#1E293B]">
+                        <span className="text-[12px] font-medium bg-[#8B5CF6]/20 text-[#A78BFA] px-2.5 py-1 rounded-md border border-[#8B5CF6]/20">
+                          {selectedHistory.type}
+                        </span>
+                        <span className="text-[12px] text-[#64748B]">
+                           {new Date(selectedHistory.timestamp).toLocaleString()}
+                        </span>
+                     </div>
+                     {selectedHistory.title && <h3 className="text-[16px] font-bold text-[#F8FAFC] mb-4">{selectedHistory.title}</h3>}
+                     <div className="prose prose-invert prose-sm max-w-none text-[#E2E8F0]"><Markdown>{selectedHistory.content}</Markdown></div>
+                  </div>
+                ) : (
+                  <>
+                    {history.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-[#64748B] gap-4">
+                        <History size={48} className="opacity-20" />
+                        <p className="text-[14px]">Your history is empty.</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {history.map((item) => (
+                          <div 
+                            key={item.id} 
+                            onClick={() => setSelectedHistory(item)}
+                            className="bg-[#0A0C11] border border-[#1E293B] hover:border-[#3B82F6]/50 rounded-xl p-4 cursor-pointer transition-all hover:bg-white/[0.02] group"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-[10px] font-medium uppercase tracking-wider bg-[#3B82F6]/10 text-[#60A5FA] px-2 py-0.5 rounded border border-[#3B82F6]/20 shrink-0">
+                                    {item.type}
+                                  </span>
+                                  <span className="text-[11px] text-[#64748B] truncate">
+                                    {new Date(item.timestamp).toLocaleDateString()} {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <h4 className="text-[14px] font-semibold text-[#F8FAFC] truncate mb-1">
+                                  {item.title || "Generated Content"}
+                                </h4>
+                                <p className="text-[12px] text-[#94A3B8] line-clamp-2 leading-relaxed">
+                                  {item.content}
+                                </p>
+                              </div>
+                              <div className="text-[#3B82F6] opacity-0 group-hover:opacity-100 transition-opacity mt-2">
+                                <ChevronRight size={20} />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
