@@ -36,6 +36,7 @@ const MavxonLogo = ({ className }: { className?: string }) => (
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'editor' | 'generator' | 'pdf' | 'books'>('editor');
+  const [inputLanguage, setInputLanguage] = useState('English');
   const [targetLanguage, setTargetLanguage] = useState('English');
   const pdfSummaryRef = useRef<HTMLDivElement>(null);
   const generatorPdfRef = useRef<HTMLDivElement>(null);
@@ -222,13 +223,13 @@ export default function App() {
       let res = '';
       switch (action) {
         case 'grammar':
-          res = await checkGrammar(editorInput);
+          res = await checkGrammar(editorInput, inputLanguage);
           break;
         case 'rewrite':
-          res = await rewriteText(editorInput);
+          res = await rewriteText(editorInput, inputLanguage);
           break;
         case 'translate':
-          res = await translateText(editorInput, targetLanguage);
+          res = await translateText(editorInput, targetLanguage, inputLanguage);
           break;
       }
       setEditorResult(res);
@@ -253,16 +254,16 @@ export default function App() {
       let res = '';
       switch (action) {
         case 'article':
-          res = await generateArticle(topicInput, targetLanguage);
+          res = await generateArticle(topicInput, targetLanguage, inputLanguage);
           break;
         case 'ideas':
-          res = await brainstormIdeas(topicInput);
+          res = await brainstormIdeas(topicInput, inputLanguage);
           break;
         case 'bookSummary':
-          res = await summarizeBook(topicInput, targetLanguage);
+          res = await summarizeBook(topicInput, targetLanguage, inputLanguage);
           break;
         case 'fullBook':
-          res = await generateFullBook(topicInput, targetLanguage);
+          res = await generateFullBook(topicInput, targetLanguage, inputLanguage);
           break;
       }
       setGeneratorResult(res);
@@ -321,7 +322,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#030406] text-[#F8FAFC] font-sans flex flex-col relative">
+    <div className="min-h-[100dvh] bg-[#030406] text-[#F8FAFC] font-sans flex flex-col relative overflow-x-hidden w-full max-w-[100vw]">
       {/* Header */}
       <header className="bg-[#0A0C11] border-b border-[#1E293B] sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
@@ -347,7 +348,20 @@ export default function App() {
               {history.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#10B981] rounded-full border-2 border-[#0A0C11]"></span>}
             </button>
             <div className="bg-white/[0.02] border border-[#1E293B] rounded-xl px-2 py-1.5 md:px-3 flex flex-col md:flex-row items-center gap-1 md:gap-3 shadow-sm min-w-0">
-              <span className="text-[11px] md:text-[12px] text-[#94A3B8] font-medium hidden sm:inline whitespace-nowrap">Output Language:</span>
+              <span className="text-[11px] md:text-[12px] text-[#94A3B8] font-medium hidden sm:inline whitespace-nowrap">Input:</span>
+              <select 
+                value={inputLanguage} 
+                onChange={(e) => setInputLanguage(e.target.value)}
+                className="bg-transparent text-[13px] md:text-[14px] text-[#F8FAFC] font-semibold focus:outline-none border-none py-1 cursor-pointer appearance-none outline-none w-full max-w-[100px] sm:max-w-none text-center sm:text-left"
+              >
+                <option value="Auto Detect" className="bg-[#0A0C11] text-[#F8FAFC]">Auto Detect</option>
+                {LANGUAGES.map(lang => (
+                  <option key={lang} value={lang} className="bg-[#0A0C11] text-[#F8FAFC]">{lang}</option>
+                ))}
+              </select>
+            </div>
+            <div className="bg-white/[0.02] border border-[#1E293B] rounded-xl px-2 py-1.5 md:px-3 flex flex-col md:flex-row items-center gap-1 md:gap-3 shadow-sm min-w-0">
+              <span className="text-[11px] md:text-[12px] text-[#94A3B8] font-medium hidden sm:inline whitespace-nowrap">Output:</span>
               <select 
                 value={targetLanguage} 
                 onChange={(e) => setTargetLanguage(e.target.value)}
@@ -420,7 +434,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="grid lg:grid-cols-[1fr_360px] gap-4 md:gap-8 items-stretch flex-1"
+              className="grid lg:grid-cols-2 gap-4 md:gap-8 items-stretch flex-1"
             >
               {/* Input Section */}
               <div className="bg-[#0A0C11] p-5 md:p-8 rounded-2xl shadow-[inset_0_0_40px_rgba(0,0,0,0.2)] border border-[#1E293B] flex flex-col min-h-[300px] md:min-h-[500px]">
@@ -508,7 +522,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="grid lg:grid-cols-[1fr_360px] gap-4 md:gap-8 items-stretch flex-1"
+              className="grid lg:grid-cols-2 gap-4 md:gap-8 items-stretch flex-1"
             >
               {/* Input Section */}
               <div className="bg-[#0A0C11] p-5 md:p-8 rounded-2xl shadow-[inset_0_0_40px_rgba(0,0,0,0.2)] border border-[#1E293B] flex flex-col min-h-[300px] md:min-h-[500px]">
@@ -601,7 +615,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="grid lg:grid-cols-[1fr_360px] gap-4 md:gap-8 items-stretch flex-1"
+              className="grid lg:grid-cols-[1fr_2.5fr] gap-4 md:gap-8 items-stretch flex-1"
             >
               <div className="bg-[#0A0C11] p-5 md:p-8 rounded-2xl shadow-[inset_0_0_40px_rgba(0,0,0,0.2)] border border-[#1E293B] flex flex-col min-h-[300px] md:min-h-[500px]">
                 <div className="text-[12px] uppercase tracking-[1px] text-[#94A3B8] flex items-center gap-2 mb-4 md:mb-6">
@@ -682,7 +696,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="grid lg:grid-cols-[1fr_360px] gap-4 md:gap-8 items-stretch flex-1"
+              className="grid lg:grid-cols-2 gap-4 md:gap-8 items-stretch flex-1"
             >
               {/* Input Section */}
               <div className="bg-[#0A0C11] p-5 md:p-8 rounded-2xl shadow-[inset_0_0_40px_rgba(0,0,0,0.2)] border border-[#1E293B] flex flex-col min-h-[300px] md:min-h-[500px]">
